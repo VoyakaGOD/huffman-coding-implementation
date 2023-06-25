@@ -1,10 +1,16 @@
+#include "bit_file_buffer.h"
 #include "bin_tree.h"
+
+int error_handler(const char *error_info)
+{
+    printf("BFB error: %s", error_info);
+    return -1;
+}
 
 int main()
 {
     char text[2000] = { 0 };
     scanf("%s", text);
-
     printf("Entered text: %s\n", text);
 
     byte_t *bytes = (byte_t *)text;
@@ -26,4 +32,15 @@ int main()
         printf("%d - [%c] - ", i, (char)i);
         bs_print(codes[i]);
     }
+
+    bfb_init(1024, error_handler);
+    bfb_open_file("test.huff", BFB_WRITE);
+    
+    bytes = (byte_t *)text;
+    while(*bytes)
+        bfb_write_bit_sequence(codes[*(bytes++)]);
+    bfb_write_bit(0x1);
+
+    printf("Success!");
+    bfb_free();
 }

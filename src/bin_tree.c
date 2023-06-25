@@ -1,7 +1,5 @@
 #include "bin_tree.h"
 
-#define MIN(a, b) (((a) < (b)) ? (a) : (b))
-
 static tree_node_t *pop_min_heap_item(tree_node_t **heap, int heap_size, int *min_index)
 {
     int i = -1;
@@ -21,7 +19,6 @@ static tree_node_t *pop_min_heap_item(tree_node_t **heap, int heap_size, int *mi
     *min_index = MIN(index, *min_index);
     tree_node_t *result = heap[index];
     heap[index] = NULL;
-    printf("[%d]\n", last_min_value);
     return result;
 }
 

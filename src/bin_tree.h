@@ -2,6 +2,7 @@
 #define BIN_TREE_HEADER
 
 #include "bit_sequence.h"
+#include "min_max.h"
 
 typedef struct tree_node tree_node_t;
 
