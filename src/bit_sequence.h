@@ -3,16 +3,15 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-
-typedef unsigned char byte_t;
+#include "byte.h"
 
 typedef struct
 {
     byte_t *content;
-    int count;
+    size_t count;
 } bit_sequence_t;
 
-bit_sequence_t bs_compress(byte_t *bits, int count);
+bit_sequence_t bs_compress(byte_t *bits, size_t count);
 
 void bs_print(bit_sequence_t bs);
 

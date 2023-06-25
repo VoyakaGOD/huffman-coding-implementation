@@ -1,12 +1,12 @@
 #include "bit_sequence.h"
 
-bit_sequence_t bs_compress(byte_t *bits, int count)
+bit_sequence_t bs_compress(byte_t *bits, size_t count)
 {
     bit_sequence_t bs = { 0 };
     bs.count = count;
     bs.content = (byte_t *)calloc((count + 7) / 8, sizeof(byte_t));
-    int lo_pointer = 0;
-    int hi_pointer = 0;
+    size_t lo_pointer = 0;
+    size_t hi_pointer = 0;
     while (count > 0)
     {
         *(bs.content + hi_pointer) += ((*bits) & 0x1) << lo_pointer;
