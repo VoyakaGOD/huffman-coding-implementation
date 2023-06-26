@@ -126,3 +126,12 @@ void bfb_write_bit_sequence(bit_sequence_t data)
         lo_pointer = data.count - inv_pointer;
     }
 }
+
+void bfb_write_cds(compressed_data_size_t cds)
+{
+    for(int i = 0; i < CDS_SIZE; i++)
+    {
+        bfb_write_byte((byte_t)cds);
+        cds >>= 8;
+    }
+}

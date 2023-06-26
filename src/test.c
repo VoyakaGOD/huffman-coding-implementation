@@ -1,4 +1,5 @@
 #include "bit_file_buffer.h"
+#include "coding_table.h"
 #include "bin_tree.h"
 
 int error_handler(const char *error_info)
@@ -33,13 +34,19 @@ int main()
         bs_print(codes[i]);
     }
 
-    bfb_init(1024, error_handler);
+    bfb_init(32 * 1024, error_handler);
     bfb_open_file("test.huff", BFB_WRITE);
+
+    compressed_data_size_t cds = 0; 
+    for(int i = 0; i < 256; i++)
+        cds += entry_table[i] * codes[i].count;
+    bfb_write_cds(cds);
+
+    ct_create_table(codes);
     
     bytes = (byte_t *)text;
     while(*bytes)
         bfb_write_bit_sequence(codes[*(bytes++)]);
-    bfb_write_bit(0x1);
 
     printf("Success!");
     bfb_free();
