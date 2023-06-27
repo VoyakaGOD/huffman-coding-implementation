@@ -2,22 +2,22 @@
 #include "coding_table.h"
 #include "bin_tree.h"
 
-int error_handler(const char *error_info)
+int exception_handler(const char *error_info)
 {
-    printf("BFB error: %s", error_info);
+    printf("Exception: %s", error_info);
     return -1;
 }
 
 int main()
 {
-    char text[2000] = { 0 };
-    scanf("%s", text);
-    printf("Entered text: %s\n", text);
+    set_exception_handler(exception_handler);
+    bfb_init(32 * 1024);
 
-    byte_t *bytes = (byte_t *)text;
+    bfb_open_input_file("test.txt");
+
     size_t entry_table[256] = { 0 };
-    while(*bytes)
-        entry_table[*(bytes++)]++;
+    while(!bfb_is_input_empty())
+        entry_table[bfb_read_byte_exactly()]++;
 
     bit_sequence_t codes[256] = { 0 };
     tree_node_t *tree = bt_build_tree(entry_table);
@@ -34,8 +34,8 @@ int main()
         bs_print(codes[i]);
     }
 
-    bfb_init(32 * 1024, error_handler);
-    bfb_open_file("test.huff", BFB_WRITE);
+    bfb_open_output_file("test.huff");
+    bfb_input_seek_to_start();
 
     compressed_data_size_t cds = 0; 
     for(int i = 0; i < 256; i++)
@@ -44,9 +44,8 @@ int main()
 
     ct_create_table(codes);
     
-    bytes = (byte_t *)text;
-    while(*bytes)
-        bfb_write_bit_sequence(codes[*(bytes++)]);
+    while(!bfb_is_input_empty())
+        bfb_write_bit_sequence(codes[bfb_read_byte_exactly()]);
 
     printf("Success!");
     bfb_free();

@@ -1,111 +1,150 @@
 #include "bit_file_buffer.h"
 
-#define THROW_EXCEPTION(info) exit(exception_handler(info))
-
-#define INC_LO_PTR_BY(value) do { lo_pointer += value; if(lo_pointer == 8) { lo_pointer = 0; hi_pointer++; \
-                                    if(hi_pointer == buffer_size) push_data(); } } while(0)
+#define INC_LO_PTR_BY(stream, value) \
+        do { stream.lo_pointer += value; if(stream.lo_pointer == 8) { stream.lo_pointer = 0; stream.hi_pointer++; } } while(0)
 
 #define LEFT >>
 #define RIGHT <<
 
-static FILE *file;
-static bfb_file_mode_t mode;
-static byte_t *buffer;
-static size_t hi_pointer;
-static size_t lo_pointer;
+#define UPDATE_INPUT_BUFFER() if(input.hi_pointer == input_filled_size) pull_data()
+#define UPDATE_OUTPUT_BUFFER() if(output.hi_pointer == buffer_size) push_data()
+
+typedef struct
+{
+    FILE *file;
+    byte_t *buffer;
+    size_t hi_pointer;
+    size_t lo_pointer;
+} bit_stream_t;
+
+static bit_stream_t input;
+static bit_stream_t output;
 static size_t buffer_size;
-static size_t filled_size;
-static error_func exception_handler;
+static size_t input_filled_size;
 
 static void push_data()
 {
-    if(!file)
-        THROW_EXCEPTION("NULL file pointer!");
+    if(!output.file)
+        THROW_EXCEPTION("No output file!");
 
-    fwrite(buffer, sizeof(byte_t), hi_pointer, file);
-    hi_pointer = 0;
+    if(fwrite(output.buffer, sizeof(byte_t), output.hi_pointer, output.file) < output.hi_pointer)
+        THROW_EXCEPTION("Output writing exception!");
+    for(size_t i = 0; i < output.hi_pointer; i++)
+        output.buffer[i] = 0;
+    output.hi_pointer = 0;
 }
 
 static void pull_data()
 {
-    if(!file)
-        THROW_EXCEPTION("NULL file pointer!");
+    if(!input.file)
+        THROW_EXCEPTION("No input file!");
 
-    filled_size = fread(buffer, sizeof(byte_t), buffer_size, file);
-    hi_pointer = 0;
+    input_filled_size = fread(input.buffer, sizeof(byte_t), buffer_size, input.file);
+    if(input_filled_size == 0)
+        THROW_EXCEPTION("Input file ended unexpectedly!");
+    input.hi_pointer = 0;
 }
 
-void bfb_init(size_t _buffer_size, error_func _exception_handler)
+static void init_bit_stream(bit_stream_t *stream)
 {
-    file = NULL;
-    buffer = (byte_t *)calloc(_buffer_size, sizeof(byte_t));
-    buffer_size = _buffer_size;
-    filled_size = 0;
-    hi_pointer = 0;
-    lo_pointer = 0;
-    exception_handler = _exception_handler;
-
-    if(!buffer)
+    stream->file = NULL;
+    stream->buffer = (byte_t *)calloc(buffer_size, sizeof(byte_t));
+    stream->hi_pointer = 0;
+    stream->lo_pointer = 0;
+    if(!stream->buffer)
         THROW_EXCEPTION("Can't allocate memory for buffer!");
 }
 
-void bfb_open_file(const char *path, bfb_file_mode_t _mode)
+void bfb_init(size_t _buffer_size)
 {
-    mode = _mode;
-    if(mode != BFB_READ && mode != BFB_WRITE)
-        THROW_EXCEPTION("Unexpected file mode!");
-    file = fopen(path, (mode == BFB_READ) ? "rb" : "wb");
-    if(!file)
-        THROW_EXCEPTION("Can't open file!");
+    buffer_size = _buffer_size;
+    input_filled_size = 0;
+
+    init_bit_stream(&input);
+    init_bit_stream(&output);
 }
 
-void bfb_close_file()
+void bfb_open_input_file(const char *path)
 {
-    if(!file)
+    if(input.file)
+        bfb_close_input_file();
+    input.file = fopen(path, "rb");
+    if(!input.file)
+        THROW_EXCEPTION("Can't open input file!");
+}
+
+void bfb_open_output_file(const char *path)
+{
+    if(output.file)
+        bfb_close_output_file();
+    output.file = fopen(path, "wb");
+    if(!output.file)
+        THROW_EXCEPTION("Can't open output file!");
+}
+
+void bfb_close_input_file()
+{
+    if(!input.file)
         return;
     
-    if(mode == BFB_WRITE)
-    {
-        if(lo_pointer > 0)
-            hi_pointer++;
-        push_data();
-    }
+    fclose(input.file);
+    input.file = NULL;
+}
+
+void bfb_close_output_file()
+{
+    if(!output.file)
+        return;
     
-    fclose(file);
-    file = NULL;
+    if(output.lo_pointer > 0)
+        output.hi_pointer++;
+    push_data();
+    
+    fclose(output.file);
+    output.file = NULL;
 }
 
 void bfb_free()
 {
-    bfb_close_file();
-    free(buffer);
+    bfb_close_input_file();
+    bfb_close_output_file();
+    free(input.buffer);
+    free(output.buffer);
 }
 
 void bfb_write_bit(byte_t data)
 {
-    if(mode != BFB_WRITE)
-        THROW_EXCEPTION("Incorrect file mode!");
-    if(hi_pointer == buffer_size)
-        push_data();
-    
-    buffer[hi_pointer] += data RIGHT lo_pointer;
-    INC_LO_PTR_BY(1);
+    UPDATE_OUTPUT_BUFFER();
+    output.buffer[output.hi_pointer] += data RIGHT output.lo_pointer;
+    INC_LO_PTR_BY(output, 1);
 }
 
 void bfb_write_byte(byte_t data)
 {
-    if(mode != BFB_WRITE)
-        THROW_EXCEPTION("Incorrect file mode!");
-    
-    buffer[hi_pointer++] += data RIGHT lo_pointer;
-    if(hi_pointer == buffer_size)
-        push_data();
-    buffer[hi_pointer] += data LEFT (8 - lo_pointer);
+    UPDATE_OUTPUT_BUFFER();
+    output.buffer[output.hi_pointer++] += data RIGHT output.lo_pointer;
+    UPDATE_OUTPUT_BUFFER();
+    output.buffer[output.hi_pointer] += data LEFT (8 - output.lo_pointer);
+}
+
+void bfb_write_byte_exactly(byte_t data)
+{
+    UPDATE_OUTPUT_BUFFER();
+    output.buffer[output.hi_pointer++] = data;
+}
+
+void bfb_write_cds(compressed_data_size_t cds)
+{
+    for(int i = 0; i < CDS_SIZE; i++)
+    {
+        bfb_write_byte((byte_t)cds);
+        cds >>= 8;
+    }
 }
 
 void bfb_write_bit_sequence(bit_sequence_t data)
 {
-    size_t inv_pointer = 8 - lo_pointer;
+    size_t inv_pointer = 8 - output.lo_pointer;
     byte_t *bits = data.content;
 
     while(data.count > 7)
@@ -117,21 +156,60 @@ void bfb_write_bit_sequence(bit_sequence_t data)
         return;
 
     byte_t last_byte = *bits;
-    buffer[hi_pointer] += last_byte RIGHT lo_pointer;
-    INC_LO_PTR_BY(MIN(inv_pointer, data.count));
-
+    output.buffer[output.hi_pointer] += last_byte RIGHT output.lo_pointer;
     if(data.count > inv_pointer)
     {
-        buffer[hi_pointer] = last_byte LEFT inv_pointer;
-        lo_pointer = data.count - inv_pointer;
+        output.hi_pointer++;
+        UPDATE_OUTPUT_BUFFER();
+        output.buffer[output.hi_pointer] = last_byte LEFT inv_pointer;
+        output.lo_pointer = data.count - inv_pointer;
+    }
+    else
+    {
+        INC_LO_PTR_BY(output, data.count);
     }
 }
 
-void bfb_write_cds(compressed_data_size_t cds)
+int bfb_is_input_empty()
 {
+    return feof(input.file) && (input.hi_pointer == input_filled_size);
+}
+
+void bfb_input_seek_to_start()
+{
+    if(fseek(input.file, 0, SEEK_SET))
+        THROW_EXCEPTION("Troubles with input file!");
+}
+
+byte_t bfb_read_bit()
+{
+    UPDATE_INPUT_BUFFER();
+    byte_t bit = input.buffer[input.hi_pointer] LEFT input.lo_pointer;
+    INC_LO_PTR_BY(input, 1);
+    return bit;
+}
+
+byte_t bfb_read_byte()
+{
+    UPDATE_INPUT_BUFFER();
+    byte_t byte = input.buffer[input.hi_pointer++] LEFT input.lo_pointer;
+    UPDATE_INPUT_BUFFER();
+    byte += input.buffer[input.hi_pointer] RIGHT (8 - input.lo_pointer);
+    return byte;
+}
+
+byte_t bfb_read_byte_exactly()
+{
+    UPDATE_INPUT_BUFFER();
+    return input.buffer[input.hi_pointer++];
+}
+
+compressed_data_size_t bfb_read_cds()
+{
+    compressed_data_size_t cds = 0;
+
     for(int i = 0; i < CDS_SIZE; i++)
-    {
-        bfb_write_byte((byte_t)cds);
-        cds >>= 8;
-    }
+        cds += ((compressed_data_size_t)bfb_read_byte()) << (8 * i);
+
+    return cds;
 }
