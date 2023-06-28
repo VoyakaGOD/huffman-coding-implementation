@@ -1,8 +1,23 @@
 #include "huffman_coding.h"
 
+static void fcreate(const char *path)
+{
+    FILE *file = fopen(path, "w");
+    if(file && !fclose(file))
+        return;
+    THROW_EXCEPTION("Can't create empty file!");
+}
+
 void hc_compress(const char *input_path, const char *output_path)
 {
     bfb_open_input_file(input_path);
+
+    if(bfb_is_input_empty())
+    {
+        fcreate(output_path);
+        bfb_close_input_file();
+        return;
+    }
 
     size_t entry_table[256] = { 0 };
     while(!bfb_is_input_empty())
@@ -33,6 +48,13 @@ void hc_compress(const char *input_path, const char *output_path)
 void hc_decompress(const char *input_path, const char *output_path)
 {
     bfb_open_input_file(input_path);
+
+    if(bfb_is_input_empty())
+    {
+        fcreate(output_path);
+        bfb_close_input_file();
+        return;
+    }
 
     compressed_data_size_t cds = bfb_read_cds();
     printf("cds = %llu\n", cds);

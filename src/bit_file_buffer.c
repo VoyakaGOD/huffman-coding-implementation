@@ -9,6 +9,8 @@
 #define UPDATE_INPUT_BUFFER() if(input.hi_pointer == input_filled_size) pull_data()
 #define UPDATE_OUTPUT_BUFFER() if(output.hi_pointer == buffer_size) push_data()
 
+#define VERIFY_INPUT_FILE() is_input_file_empty = (getc(input.file) == EOF); fseek(input.file, -sizeof(char), SEEK_CUR)
+
 typedef struct
 {
     FILE *file;
@@ -21,6 +23,7 @@ static bit_stream_t input;
 static bit_stream_t output;
 static size_t buffer_size;
 static size_t input_filled_size;
+static int is_input_file_empty;
 
 static void push_data()
 {
@@ -43,14 +46,13 @@ static void pull_data()
     if(input_filled_size == 0)
         THROW_EXCEPTION("Input file ended unexpectedly!");
     input.hi_pointer = 0;
+    VERIFY_INPUT_FILE();
 }
 
 static void init_bit_stream(bit_stream_t *stream)
 {
     stream->file = NULL;
     stream->buffer = (byte_t *)calloc(buffer_size, sizeof(byte_t));
-    stream->hi_pointer = 0;
-    stream->lo_pointer = 0;
     if(!stream->buffer)
         THROW_EXCEPTION("Can't allocate memory for buffer!");
 }
@@ -61,7 +63,6 @@ void bfb_init(size_t _buffer_size)
         _buffer_size = BFB_MIN_BUFFER_SIZE;
     
     buffer_size = _buffer_size;
-    input_filled_size = 0;
 
     init_bit_stream(&input);
     init_bit_stream(&output);
@@ -74,6 +75,10 @@ void bfb_open_input_file(const char *path)
     input.file = fopen(path, "rb");
     if(!input.file)
         THROW_EXCEPTION("Can't open input file!");
+    VERIFY_INPUT_FILE();
+    input.hi_pointer = 0;
+    input.lo_pointer = 0;
+    input_filled_size = 0;
 }
 
 void bfb_open_output_file(const char *path)
@@ -83,6 +88,8 @@ void bfb_open_output_file(const char *path)
     output.file = fopen(path, "wb");
     if(!output.file)
         THROW_EXCEPTION("Can't open output file!");
+    output.hi_pointer = 0;
+    output.lo_pointer = 0;
 }
 
 void bfb_close_input_file()
@@ -177,7 +184,7 @@ void bfb_write_bit_sequence(bit_sequence_t data)
 
 int bfb_is_input_empty()
 {
-    return feof(input.file) && (input.hi_pointer == input_filled_size);
+    return is_input_file_empty && (input.hi_pointer == input_filled_size);
 }
 
 void bfb_input_seek_to_start()
