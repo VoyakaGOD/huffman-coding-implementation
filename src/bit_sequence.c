@@ -1,6 +1,6 @@
 #include "bit_sequence.h"
 
-bit_sequence_t bs_compress(byte_t *bits, size_t count)
+bit_sequence_t bs_pack(byte_t *bits, size_t count)
 {
     bit_sequence_t bs = { 0 };
     bs.count = count;

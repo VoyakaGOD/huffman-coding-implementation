@@ -29,12 +29,40 @@ static void create_full_table(bit_sequence_t codes[256])
 
 void ct_create_table(bit_sequence_t codes[256])
 {
-    byte_t count = 0;
+    int count = 0;
     for(int i = 0; i < 256; i++)
         count += (codes[i].count > 0);
 
+    if(count == 0)
+        THROW_EXCEPTION("Try to create empty coding table!");
+
     if(count < 128)
-        create_short_table(codes, count);
+        create_short_table(codes, (byte_t)(count - 1));
     else
         create_full_table(codes);
+}
+
+static void read_short_table(unpacked_bit_sequence_t codes[256])
+{
+    int count = ((int)bfb_read_byte()) + 1;
+    for(int i = 0; i < count; i++)
+    {
+        byte_t byte = bfb_read_byte();
+        codes[byte] = bfb_read_unpacked_bit_sequence((size_t)bfb_read_byte());
+    }
+}
+
+static void read_full_table(unpacked_bit_sequence_t codes[256])
+{
+    for(int i = 0; i < 256; i++)
+        codes[i] = bfb_read_unpacked_bit_sequence((size_t)bfb_read_byte());
+}
+
+void ct_read_table(unpacked_bit_sequence_t codes[256])
+{
+    byte_t type = bfb_read_bit();
+    if(type == SHORT_TABLE_BIT)
+        read_short_table(codes);
+    else
+        read_full_table(codes);
 }

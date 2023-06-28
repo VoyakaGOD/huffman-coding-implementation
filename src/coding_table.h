@@ -5,6 +5,6 @@
 
 void ct_create_table(bit_sequence_t codes[256]);
 
-void ct_read_table(bit_sequence_t codes[256]);
+void ct_read_table(unpacked_bit_sequence_t codes[256]);
 
 #endif //CODING_TABLE_HEADER

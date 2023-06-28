@@ -57,6 +57,9 @@ static void init_bit_stream(bit_stream_t *stream)
 
 void bfb_init(size_t _buffer_size)
 {
+    if(_buffer_size < BFB_MIN_BUFFER_SIZE)
+        _buffer_size = BFB_MIN_BUFFER_SIZE;
+    
     buffer_size = _buffer_size;
     input_filled_size = 0;
 
@@ -87,7 +90,8 @@ void bfb_close_input_file()
     if(!input.file)
         return;
     
-    fclose(input.file);
+    if(fclose(input.file))
+        THROW_EXCEPTION("Can't close input file!");
     input.file = NULL;
 }
 
@@ -100,7 +104,8 @@ void bfb_close_output_file()
         output.hi_pointer++;
     push_data();
     
-    fclose(output.file);
+    if(fclose(output.file))
+        THROW_EXCEPTION("Can't close output file!");
     output.file = NULL;
 }
 
@@ -115,7 +120,7 @@ void bfb_free()
 void bfb_write_bit(byte_t data)
 {
     UPDATE_OUTPUT_BUFFER();
-    output.buffer[output.hi_pointer] += data RIGHT output.lo_pointer;
+    output.buffer[output.hi_pointer] += (data & 0x1) RIGHT output.lo_pointer;
     INC_LO_PTR_BY(output, 1);
 }
 
@@ -186,7 +191,7 @@ byte_t bfb_read_bit()
     UPDATE_INPUT_BUFFER();
     byte_t bit = input.buffer[input.hi_pointer] LEFT input.lo_pointer;
     INC_LO_PTR_BY(input, 1);
-    return bit;
+    return bit & 0x1;
 }
 
 byte_t bfb_read_byte()
@@ -212,4 +217,14 @@ compressed_data_size_t bfb_read_cds()
         cds += ((compressed_data_size_t)bfb_read_byte()) << (8 * i);
 
     return cds;
+}
+
+unpacked_bit_sequence_t bfb_read_unpacked_bit_sequence(size_t bits_count)
+{
+    unpacked_bit_sequence_t ubs = { 0 };
+    ubs.count = bits_count;
+    ubs.bits = (byte_t *)calloc(ubs.count, sizeof(byte_t));
+    for(int i = 0; i < ubs.count; i++)
+        ubs.bits[i] = bfb_read_bit();
+    return ubs;
 }

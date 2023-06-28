@@ -11,7 +11,13 @@ typedef struct
     size_t count;
 } bit_sequence_t;
 
-bit_sequence_t bs_compress(byte_t *bits, size_t count);
+typedef struct
+{
+    byte_t *bits;
+    size_t count;
+} unpacked_bit_sequence_t;
+
+bit_sequence_t bs_pack(byte_t *bits, size_t count);
 
 void bs_print(bit_sequence_t bs);
 

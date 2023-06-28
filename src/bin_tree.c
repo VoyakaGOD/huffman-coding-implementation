@@ -76,7 +76,7 @@ static void bt_get_codes_impl(tree_node_t *node, bit_sequence_t codes[256], byte
             bits[0] = 1;
             length = 1;
         }
-        codes[node->byte] = bs_compress(bits, length);
+        codes[node->byte] = bs_pack(bits, length);
         return;
     }
 
