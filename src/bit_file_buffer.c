@@ -56,7 +56,7 @@ static void init_bit_stream(bit_stream_t *stream)
     stream->file = NULL;
     stream->buffer = (byte_t *)calloc(buffer_size, sizeof(byte_t));
     if(!stream->buffer)
-        THROW_EXCEPTION("Can't allocate memory for buffer!");
+        THROW_EXCEPTION("Can't allocate memory for I/O buffer!");
 }
 
 void bfb_init(size_t _buffer_size)

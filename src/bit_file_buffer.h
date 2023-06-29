@@ -3,8 +3,6 @@
 
 #include "compressed_data_size.h"
 #include "bit_sequence.h"
-#include "exception.h"
-#include "min_max.h"
 
 #define BFB_MIN_BUFFER_SIZE 4
 

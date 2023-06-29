@@ -13,3 +13,11 @@ void throw_exception(const char *message)
         exit(-1);
     exit(handler(message));
 }
+
+void *s_alloc(size_t count, size_t size)
+{
+    void *ptr = calloc(count, size);
+    if(!ptr)
+        THROW_EXCEPTION("Can't allocate memory using [s_alloc]!");
+    return ptr;
+}

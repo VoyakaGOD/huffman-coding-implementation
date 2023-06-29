@@ -24,7 +24,7 @@ static tree_node_t *pop_min_heap_item(tree_node_t **heap, int heap_size, int *mi
 
 static tree_node_t *create_heap_item(byte_t byte, size_t value)
 {
-    tree_node_t *item_ptr = (tree_node_t *)calloc(1, sizeof(tree_node_t));
+    tree_node_t *item_ptr = S_ALLOC(1, tree_node_t);
     item_ptr->byte = byte;
     item_ptr->value = value;
     return item_ptr;
@@ -32,7 +32,7 @@ static tree_node_t *create_heap_item(byte_t byte, size_t value)
 
 static tree_node_t *unite_nodes(tree_node_t *zero, tree_node_t *one)
 {
-    tree_node_t *node = (tree_node_t *)calloc(1, sizeof(tree_node_t));
+    tree_node_t *node = S_ALLOC(1, tree_node_t);
     node->zero = zero;
     node->one = one;
     node->value = zero->value + one->value;
@@ -78,20 +78,20 @@ static void add_leaf(tree_node_t *node, unpacked_bit_sequence_t code, size_t ind
     if((code.bits[index] & 0x1) == 0x0)
     {
         if(!node->zero)
-            node->zero = (tree_node_t *)calloc(1, sizeof(tree_node_t));
+            node->zero = S_ALLOC(1, tree_node_t);
         add_leaf(node->zero, code, index + 1, byte);
     }
     else
     {
         if(!node->one)
-            node->one = (tree_node_t *)calloc(1, sizeof(tree_node_t));
+            node->one = S_ALLOC(1, tree_node_t);
         add_leaf(node->one, code, index + 1, byte);
     }
 }
 
 tree_node_t *bt_build_tree_from_codes(unpacked_bit_sequence_t codes[256])
 {
-    tree_node_t *root = (tree_node_t *)calloc(1, sizeof(tree_node_t));
+    tree_node_t *root = S_ALLOC(1, tree_node_t);
 
     for(int i = 0; i < 256; i++)
     {

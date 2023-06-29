@@ -4,7 +4,7 @@ bit_sequence_t bs_pack(byte_t *bits, size_t count)
 {
     bit_sequence_t bs = { 0 };
     bs.count = count;
-    bs.content = (byte_t *)calloc((count + 7) / 8, sizeof(byte_t));
+    bs.content = S_ALLOC((count + 7) / 8, byte_t);
     size_t lo_pointer = 0;
     size_t hi_pointer = 0;
     while (count > 0)

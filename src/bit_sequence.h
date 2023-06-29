@@ -2,7 +2,6 @@
 #define BIT_SEQUENCE_HEADER
 
 #include <stdio.h>
-#include <stdlib.h>
 #include "exception.h"
 #include "byte.h"
 
