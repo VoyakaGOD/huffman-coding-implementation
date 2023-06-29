@@ -39,7 +39,7 @@ static tree_node_t *unite_nodes(tree_node_t *zero, tree_node_t *one)
     return node;
 }
 
-tree_node_t *bt_build_tree(size_t entry_table[256])
+tree_node_t *bt_build_tree_from_entry_table(size_t entry_table[256])
 {
     int heap_size = 0;
     for(int i = 0; i < 256; i++)
@@ -67,6 +67,42 @@ tree_node_t *bt_build_tree(size_t entry_table[256])
     return heap[0];
 }
 
+static void add_leaf(tree_node_t *node, unpacked_bit_sequence_t code, size_t index, byte_t byte)
+{
+    if(index == code.count)
+    {
+        node->byte = byte;
+        return;
+    }
+
+    if((code.bits[index] & 0x1) == 0x0)
+    {
+        if(!node->zero)
+            node->zero = (tree_node_t *)calloc(1, sizeof(tree_node_t));
+        add_leaf(node->zero, code, index + 1, byte);
+    }
+    else
+    {
+        if(!node->one)
+            node->one = (tree_node_t *)calloc(1, sizeof(tree_node_t));
+        add_leaf(node->one, code, index + 1, byte);
+    }
+}
+
+tree_node_t *bt_build_tree_from_codes(unpacked_bit_sequence_t codes[256])
+{
+    tree_node_t *root = (tree_node_t *)calloc(1, sizeof(tree_node_t));
+
+    for(int i = 0; i < 256; i++)
+    {
+        if(codes[i].count == 0)
+            continue;
+        add_leaf(root, codes[i], 0, (byte_t)i);
+    }
+
+    return root;
+}
+
 static void bt_get_codes_impl(tree_node_t *node, bit_sequence_t codes[256], byte_t bits[256], int length)
 {
     if(!node->zero)
@@ -92,6 +128,22 @@ void bt_get_codes(tree_node_t *tree, bit_sequence_t codes[256])
         return;
     byte_t bits[256] = { 0 };
     bt_get_codes_impl(tree, codes, bits, 0);
+}
+
+byte_t bt_decode_byte(tree_node_t *tree, read_bit_func_t read_bit)
+{
+    if(!tree)
+        THROW_EXCEPTION("Bad decoding tree!");
+    
+    if(!tree->zero)
+    {
+        return tree->byte;
+    }
+    else
+    {
+        tree_node_t *next = ((read_bit() & 0x1) == 0x0) ? tree->zero : tree->one;
+        return bt_decode_byte(next, read_bit);
+    }
 }
 
 void bt_free(tree_node_t *tree)

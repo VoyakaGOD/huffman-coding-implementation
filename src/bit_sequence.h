@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "exception.h"
 #include "byte.h"
 
 typedef struct

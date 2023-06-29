@@ -9,7 +9,8 @@
 #define UPDATE_INPUT_BUFFER() if(input.hi_pointer == input_filled_size) pull_data()
 #define UPDATE_OUTPUT_BUFFER() if(output.hi_pointer == buffer_size) push_data()
 
-#define VERIFY_INPUT_FILE() is_input_file_empty = (getc(input.file) == EOF); fseek(input.file, -sizeof(char), SEEK_CUR)
+#define VERIFY_INPUT_FILE() is_input_file_empty = (getc(input.file) == EOF); \
+                            if(!is_input_file_empty) fseek(input.file, -sizeof(char), SEEK_CUR)
 
 typedef struct
 {
@@ -45,6 +46,7 @@ static void pull_data()
     input_filled_size = fread(input.buffer, sizeof(byte_t), buffer_size, input.file);
     if(input_filled_size == 0)
         THROW_EXCEPTION("Input file ended unexpectedly!");
+    printf("filled size: %zu / %zu\n", input_filled_size, buffer_size);
     input.hi_pointer = 0;
     VERIFY_INPUT_FILE();
 }
@@ -191,6 +193,10 @@ void bfb_input_seek_to_start()
 {
     if(fseek(input.file, 0, SEEK_SET))
         THROW_EXCEPTION("Troubles with input file!");
+    VERIFY_INPUT_FILE();
+    input.hi_pointer = 0;
+    input.lo_pointer = 0;
+    input_filled_size = 0;
 }
 
 byte_t bfb_read_bit()
