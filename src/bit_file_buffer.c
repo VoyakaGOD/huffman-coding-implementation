@@ -46,7 +46,6 @@ static void pull_data()
     input_filled_size = fread(input.buffer, sizeof(byte_t), buffer_size, input.file);
     if(input_filled_size == 0)
         THROW_EXCEPTION("Input file ended unexpectedly!");
-    printf("filled size: %zu / %zu\n", input_filled_size, buffer_size);
     input.hi_pointer = 0;
     VERIFY_INPUT_FILE();
 }
@@ -170,6 +169,7 @@ void bfb_write_bit_sequence(bit_sequence_t data)
         return;
 
     byte_t last_byte = *bits;
+    UPDATE_OUTPUT_BUFFER();
     output.buffer[output.hi_pointer] += last_byte RIGHT output.lo_pointer;
     if(data.count > inv_pointer)
     {
